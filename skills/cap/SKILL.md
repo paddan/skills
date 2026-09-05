@@ -38,13 +38,13 @@ If tests **pass**, mention it briefly and continue.
 
 ## Step 1 — Run the code review
 
-Load and follow the `kodgranskning` skill using the runtime's available skill-loading mechanism, or read its `SKILL.md` directly. If it cannot be found, report the missing dependency.
+Load and follow the `code-review` skill using the runtime's available skill-loading mechanism, or read its `SKILL.md` directly. If it cannot be found, report the missing dependency.
 
 Use its branch-review scope: the diff from the merge base against the relevant `main`/`master`, plus all staged and unstaged tracked-file changes. Exclude untracked files unless explicitly requested. A feature branch's upstream tracks publication state; it is not automatically the review base. Already-pushed feature commits remain in scope.
 
 On `main`/`master`, review local changes and use the intended remote branch as an explicit comparison for commits awaiting push. If that remote branch does not exist, establish the initial publication range from history and disclose it. Keep the review scope separate from the push range.
 
-Use the report format defined by `kodgranskning`: Critical/Major/Minor and a Suggestions section, with the report language and labels specified by that skill.
+Use the report format defined by `code-review`: Critical/Major/Minor and a Suggestions section, with the report language and labels specified by that skill.
 
 ## Step 2 — Ask the user
 

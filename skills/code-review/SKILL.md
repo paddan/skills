@@ -1,5 +1,5 @@
 ---
-name: kodgranskning
+name: code-review
 description: Use when the user requests a code review, says "granska", "kodgranska", "review", "kolla koden", or asks for feedback on changes, a branch, a pull request, or specific files.
 ---
 

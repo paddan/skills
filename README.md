@@ -1,6 +1,6 @@
 # skills
 
-Personal agent skills: `cap`, `kodgranskning`, and `jfr-analyzer`.
+Personal agent skills: `cap`, `code-review`, and `jfr-analyzer`.
 
 ## Verification
 
