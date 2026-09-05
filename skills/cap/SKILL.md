@@ -1,94 +1,102 @@
 ---
 name: cap
-description: Använd när användaren skriver "/cap" eller ber om att "commita och pusha", "cap", "granska och commit". Kör först kodgranskning-skillen på aktuella ändringar, frågar om upptäckta problem ska fixas, gör sedan commit och push. Skapar ingen PR.
+description: Use when the user writes "/cap", asks to "commit and push", says "cap", "review and commit", "commita och pusha", or "granska och commit". Runs the code-review skill first, asks whether identified issues should be fixed, then commits and pushes. Does not create a PR.
 ---
 
-# cap — granska, commit, push
+# cap — review, commit, push
 
-Ett kombinerat flöde: kodgranskning → bekräfta → commit → push. Ingen PR.
+A combined workflow: code review → confirmation → commit → push. No PR.
 
-## Förutsättningar
+## Prerequisites
 
-- Användaren är i ett git-repo med aktuella ändringar (staged eller unstaged).
-- Om det inte finns något att committa: säg det rakt ut och avbryt.
-- Om det inte finns någon remote eller upstream: gör commit ändå, men säg till användaren att push hoppas över.
+- Inspect the current branch, working tree, remotes, and upstream. Treat uncommitted changes and commits awaiting push as separate states.
+- A clean working tree does not end the workflow: review and push existing local commits when needed, without creating an empty commit.
+- If neither a commit nor a push is needed, report that the repository is up to date.
+- A missing upstream does not prevent pushing. Use Step 4 to establish it on the intended remote. If no remote exists, complete any requested local commit and report that push requires a destination; do not invent one.
+- Use existing session authorization and repository conventions to resolve the target branch and remote. Ask only when the destination remains ambiguous.
 
-## Steg 0 — Kör tester
+## Step 0 — Run tests
 
-Innan granskning och commit: kör projektets testsuite.
+Before reviewing and committing, run the project's test suite.
 
-Detektera testramverk i den här prioritetsordningen:
+Detect the test framework in this order:
 
-1. `AGENTS.md` / `README.md` nämner ett specifikt testkommando → använd det.
-2. `pyproject.toml` / `setup.py` + `.venv/` → `.venv/bin/pytest` (eller `pytest` om venv saknas).
-3. `package.json` med `"test"`-script → `npm test`.
-4. `Cargo.toml` → `cargo test`.
-5. `go.mod` → `go test ./...`.
-6. Hittas inget → hoppa över steget och notera det för användaren.
+1. If `AGENTS.md` or `README.md` specifies a test command, use it.
+2. `pyproject.toml` / `setup.py` with `.venv/`: use `.venv/bin/pytest` (or `pytest` if there is no virtual environment).
+3. `package.json` with a `"test"` script: use `npm test`.
+4. `Cargo.toml`: use `cargo test`.
+5. `go.mod`: use `go test ./...`.
+6. If none applies, skip this step and tell the user.
 
-Kör testerna. Om de **misslyckas**:
+If tests **fail**:
 
-- Lista de felaktiga testerna kortfattat.
-- Behandla det som ett **Kritiskt**-fynd i granskningen (dvs. fråga med stark varning i Steg 2).
-- Avbryt **inte** automatiskt — låt användaren bestämma om de vill fixa eller committa ändå.
+- Briefly list the failing tests.
+- Treat this as a **Critical** finding in the review, with a strong warning in Step 2.
+- Do **not** stop automatically: let the user decide whether to fix the failures or commit anyway.
 
-Om de **passerar**: notera det kort ("Alla tester passerade") och gå vidare.
+If tests **pass**, mention it briefly and continue.
 
-## Steg 1 — Kör kodgranskning
+## Step 1 — Run the code review
 
-Anropa `kodgranskning`-skillen via Skill-verktyget. Scope är de **lokala ändringarna som inte är pushade ännu**:
+Load and follow the `kodgranskning` skill using the runtime's available skill-loading mechanism, or read its `SKILL.md` directly. If it cannot be found, report the missing dependency.
 
-- Om branchen har en upstream: granska `<upstream>..HEAD` plus staged och unstaged ändringar.
-- Om branchen saknar upstream: granska alla commits på branchen plus staged och unstaged ändringar (eller jämför mot `main`/`master` om det är rimligt).
+Use its branch-review scope: the diff from the merge base against the relevant `main`/`master`, plus all staged and unstaged tracked-file changes. Exclude untracked files unless explicitly requested. A feature branch's upstream tracks publication state; it is not automatically the review base. Already-pushed feature commits remain in scope.
 
-Granskningen ska produceras enligt det format som `kodgranskning` definierar — Kritisk/Allvarlig/Mindre + Förslag-sektion.
+On `main`/`master`, review local changes and use the intended remote branch as an explicit comparison for commits awaiting push. If that remote branch does not exist, establish the initial publication range from history and disclose it. Keep the review scope separate from the push range.
 
-## Steg 2 — Fråga användaren
+Use the report format defined by `kodgranskning`: Critical/Major/Minor and a Suggestions section, with the report language and labels specified by that skill.
 
-Visa granskningen och fråga om de vill fixa något innan commit. Använd `AskUserQuestion`-verktyget med tre alternativ:
+## Step 2 — Ask the user
 
-- **Fixa rekommenderade problem** — du fixar de punkter som Förslag-sektionen rekommenderar att fixa nu. Efter fix, kör om granskningen kort (bara verifiera att de fixade punkterna är borta) och fortsätt till commit.
-- **Committa som det är** — hoppa över fixar, gå direkt till commit.
-- **Avbryt** — inget händer, behåll arbetsträdet som det är.
+Show the review. If fixes are not already authorized, ask whether the user wants recommended fixes, a commit as is, or cancellation. Use a suitable user-input tool available in the runtime, or ask in plain text if no such tool is available. Honor the runtime's input-tool restrictions.
 
-Om granskningen är tom (inget hittat) — hoppa över frågan och gå direkt till commit.
+- **Fix recommended issues** — fix the issues recommended for immediate action in Suggestions. Rerun relevant tests and review the final changes before continuing.
+- **Commit as is** — skip fixes and proceed directly to commit.
+- **Cancel** — take no action and leave the working tree as it is.
 
-Om granskningen innehåller **Kritiska** problem — fråga med en extra varning och rekommendera starkt att fixa innan commit.
+If there are no findings, skip the question and proceed directly to commit.
 
-## Steg 3 — Commit
+If the review contains **Critical** issues, add an explicit warning and strongly recommend fixing them before committing.
 
-Följ projektets befintliga commit-stil. Läs senaste 5–10 commits med `git log --format='%s' -10` för att matcha tonalitet, prefix (`feat:`, `fix:`, `docs:` etc.), språk (svenska/engelska).
+## Step 3 — Commit
 
-- Använd `git status` och `git diff --staged` (eller `git diff` om inget är staged) för att förstå ändringen.
-- Skriv ett meddelande som beskriver *varför*, inte bara *vad*.
-- Stagea bara filer som hör till ändringen. Undvik `git add -A` om det finns blandade ändringar — fråga då användaren vilka filer som ska med.
-- Hoppa inte över hooks. Om en pre-commit-hook felar: fixa orsaken och försök igen, **amend:a inte** den misslyckade commiten — skapa en ny.
+Follow the repository's existing commit style. Read the last 5–10 commit subjects with `git log --format='%s' -10` to match tone, prefixes (`feat:`, `fix:`, `docs:`, etc.), and language.
 
-Använd HEREDOC för att passa multiline-meddelande:
+Skip this step when there are no in-scope changes to commit; continue to push any existing commits that need publication.
+
+- Use `git status` and `git diff --staged`, or `git diff` if nothing is staged, to understand the change.
+- Write a message explaining why the change was made, not just what changed.
+- Stage only files belonging to the change. Avoid `git add -A` when changes are mixed; ask the user which files to include if needed.
+- Do not skip hooks. If a pre-commit hook fails, fix the cause and retry. Do not amend the failed commit; create a new commit.
+
+Use a heredoc for a multiline message:
 
 ```bash
 git commit -m "$(cat <<'EOF'
-<commit-meddelande>
+<commit message>
 
-Co-Authored-By: Codex Opus 4.7 <noreply@anthropic.com>
 EOF
 )"
 ```
 
-## Steg 4 — Push
+Do not invent co-author identities. Add an attribution trailer only when explicitly requested or required by repository conventions, using accurate supplied identity information.
 
-- Om branchen har upstream: `git push`.
-- Om branchen saknar upstream: `git push -u origin <branch>`.
-- Push:a **aldrig** med `--force` eller `--force-with-lease` i det här flödet. Om en vanlig push avvisas (icke-fast-forward): säg det till användaren och be om instruktion — kör inte en force-variant på eget bevåg.
-- Push:a aldrig till `main`/`master` direkt utan att verifiera att det är önskat (jämför med konventioner i repo).
+## Step 4 — Push
 
-## Steg 5 — Bekräfta
+- Resolve the intended remote and branch, inspect publication state, and refresh remote information when available. Do not declare the repository up to date solely from stale tracking refs.
+- Push explicitly to that destination, such as `git push <remote> HEAD:refs/heads/<branch>`.
+- If the branch has no upstream, use `git push -u <remote> HEAD:refs/heads/<branch>`. Use `origin` only when it is the intended remote. If no remote is configured, report the missing destination.
+- **Never** use `--force` or `--force-with-lease` in this workflow. If a normal push is rejected as non-fast-forward, tell the user and ask for direction; do not force-push on your own.
+- Never push directly to `main`/`master` without verifying that this is intended, using the repository's conventions as context.
+- After success, verify that the destination branch matches the pushed commit and report any remaining local changes. If push fails, preserve the local commit and describe the actual failure.
 
-Skriv en kort sammanfattning på en till två rader: vad som committades, vad som pushades, och var det landade (branch + remote). Använd markdown-länk till commit-hashen om det är ett GitHub-repo.
+## Step 5 — Confirm
 
-## Vad skillen inte gör
+Give a short, one- or two-line summary of what was committed, what was pushed, and where it landed (branch and remote). For a GitHub repository, link the commit hash.
 
-- Skapar ingen PR. Om användaren vill ha en PR — det är ett separat flöde.
-- Skriver inte över hooks eller signering.
-- Force-push:ar aldrig.
-- Skapar inte en branch — committar på den nuvarande.
+## What this skill does not do
+
+- Create a PR. That is a separate workflow if requested.
+- Override hooks or signing.
+- Force-push.
+- Create a branch: commit on the current branch.
