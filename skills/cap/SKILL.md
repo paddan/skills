@@ -62,14 +62,20 @@ If the review contains **Critical** issues, add an explicit warning and strongly
 
 Follow the repository's existing commit style. Read the last 5–10 commit subjects with `git log --format='%s' -10` to match tone, prefixes (`feat:`, `fix:`, `docs:`, etc.), and language.
 
-Skip this step when there are no in-scope changes to commit; continue to push any existing commits that need publication.
+Keep exactly one commit containing the branch's changes before every push. Count only commits since the branch's merge base with the relevant base branch, never the inherited base history. On `main`/`master`, apply this rule only to local commits awaiting publication relative to the intended remote branch; do not rewrite published default-branch history. Establish the boundary before rewriting history; ask if it cannot be determined safely.
+
+- If there are no commits in that range, create one commit for the in-scope changes.
+- If there is already one commit, amend it with `git commit --amend` to include new in-scope changes instead of creating another commit. Update the message to describe the complete result.
+- If there are multiple commits, squash all commits in that range into one before pushing, including when the working tree is clean. Include any new in-scope changes in that same commit.
+- Skip committing only when there are no new in-scope changes and the range already contains at most one commit. Do not create an empty commit.
+- Preserve the combined content of the reviewed changes and leave unrelated working-tree and staged changes untouched when amending or squashing.
 
 - Use `git status` and `git diff --staged`, or `git diff` if nothing is staged, to understand the change.
 - Write a message explaining why the change was made, not just what changed.
 - Stage only files belonging to the change. Avoid `git add -A` when changes are mixed; ask the user which files to include if needed.
-- Do not skip hooks. If a pre-commit hook fails, fix the cause and retry. Do not amend the failed commit; create a new commit.
+- Do not skip hooks. If a pre-commit hook fails, fix the cause and retry the intended create or amend operation. A failed commit attempt does not create a commit; do not accidentally amend the base commit.
 
-Use a heredoc for a multiline message:
+Use a heredoc for a multiline message (add `--amend` when updating the existing branch commit):
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -84,9 +90,10 @@ Do not invent co-author identities. Add an attribution trailer only when explici
 ## Step 4 — Push
 
 - Resolve the intended remote and branch, inspect publication state, and refresh remote information when available. Do not declare the repository up to date solely from stale tracking refs.
+- Verify that the range defined in Step 3 contains exactly one commit when publishing changes. If it contains more, return to Step 3 and squash before pushing.
 - Push explicitly to that destination, such as `git push <remote> HEAD:refs/heads/<branch>`.
 - If the branch has no upstream, use `git push -u <remote> HEAD:refs/heads/<branch>`. Use `origin` only when it is the intended remote. If no remote is configured, report the missing destination.
-- **Never** use `--force` or `--force-with-lease` in this workflow. If a normal push is rejected as non-fast-forward, tell the user and ask for direction; do not force-push on your own.
+- **Never** use `--force` or `--force-with-lease` in this workflow. Amending or squashing already-pushed commits can require a history-rewriting push: explain this and ask for direction when detected, or if a normal push is rejected as non-fast-forward. Do not create an extra commit to bypass the one-commit rule or force-push on your own.
 - Never push directly to `main`/`master` without verifying that this is intended, using the repository's conventions as context.
 - After success, verify that the destination branch matches the pushed commit and report any remaining local changes. If push fails, preserve the local commit and describe the actual failure.
 
