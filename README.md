@@ -10,9 +10,9 @@ They use isolated temporary files and mock JDK commands; they require Python 3
 and Bash, but do not require a JDK. Real-recording integration checks require a
 JDK separately.
 
-The dotfiles repository keeps `~/.agents/skills` stowed with symlinks back into
-this repository; `cd ~/projects/dotfiles && make verify-skills` checks that
-the whole chain resolves and that every `SKILL.md` names its own directory.
+The same command also checks the skill layout: every `skills/<name>/` needs a
+`SKILL.md` whose `name:` matches the directory name, plus `agents/openai.yaml`
+with interface text.
 
 ## Installation
 

@@ -1,0 +1,3 @@
+interface:
+  display_name: "JFR Analyzer"
+  short_description: "Analyze Java Flight Recorder recordings"

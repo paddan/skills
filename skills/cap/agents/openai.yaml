@@ -1,0 +1,3 @@
+interface:
+  display_name: "Cap"
+  short_description: "Review, commit and push"
