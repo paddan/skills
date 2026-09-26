@@ -1,0 +1,5 @@
+interface:
+  display_name: "Rules Check Drift"
+  short_description: "Check the rules file against recent changes"
+policy:
+  allow_implicit_invocation: false
