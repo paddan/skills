@@ -3,6 +3,26 @@
 Personal agent skills. Each skill lives in its own directory under `skills/`, and
 `install.sh` links them into the skill directories the agents read.
 
+## Skills
+
+| Skill | Description |
+|-------|-------------|
+| `grilling` | Frågar ut en plan, ett beslut eller en idé tills de svaga delarna syns. |
+| `grill-me` | Samma intervju för en enskild plan eller design, i en följd. |
+| `grill-with-docs` | Samma intervju, men skriver ADR:er och ordlista medan besluten tas. |
+| `to-spec` | Omvandlar samtalet till en spec i `docs/specs/` — utan intervju. |
+| `to-tickets` | Delar en plan eller spec i tracer-bullet-tickets i `docs/tickets/<feature-slug>/`, var och en med sina blockerande kanter. |
+| `implement` | Implementerar en spec eller ticket-uppsättning. |
+| `tdd` | Testdriven red-green-refactor vid överenskomna sömmar. |
+| `code-review` | Granskar branchen plus ocommittade ändringar och rapporterar fynd per allvarlighetsgrad. |
+| `cap` | Granska, bekräfta, committa, pusha — en commit, ingen PR. |
+| `release` | Bumpar versionen, uppdaterar CHANGELOG/README, kör tester, committar, taggar och pushar. |
+| `rules-check-drift` | Kontrollerar att AGENTS.md/CLAUDE.md fortfarande stämmer med koden. |
+| `handoff` | Komprimerar samtalet till ett handoff-dokument för nästa agent. |
+| `improve-codebase-architecture` | Letar förenklingsmöjligheter, rapporterar dem som HTML och grillar sedan den du väljer. |
+| `find-skills` | Hittar och installerar skills från agent-skills-ekosystemet. |
+| `jfr-analyzer` | Analyserar Java Flight Recorder-inspelningar för JVM- och applikationsproblem. |
+
 ## Verification
 
 Run `python3 -m unittest discover -s tests -v` for the JFR script regression tests.
