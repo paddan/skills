@@ -2,14 +2,16 @@
 set -euo pipefail
 
 usage() {
-  printf '%s\n' 'Usage: ./install.sh [--agents|--codex|--claude|--opencode|--pi|--all] [--copy] [--skill NAME] [--dest DIR]' \
+  printf '%s\n' 'Usage: ./install.sh [--agents|--codex|--claude|--opencode|--pi|--all] [--mods] [--copy] [--skill NAME] [--dest DIR]' \
     'Default: --agents, using symlinks. Target flags can be combined.' \
+    '--mods alone installs no skills; it prints the CLAUDE_CODE_PLUGIN_DIRS value for the mods/ plugins.' \
     'Existing installations are preserved in a backup directory beside the skills.'
 }
 
 repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 mode=link
 selected_skill=
+want_mods=false
 destinations=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -21,6 +23,7 @@ while [[ $# -gt 0 ]]; do
     --all)
       destinations+=("$HOME/.agents/skills" "$HOME/.codex/skills" "$HOME/.claude/skills" "$HOME/.config/opencode/skills" "$HOME/.pi/agent/skills")
       shift ;;
+    --mods) want_mods=true; shift ;;
     --copy) mode=copy; shift ;;
     --skill|--dest)
       [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || { usage >&2; exit 2; }
@@ -30,10 +33,24 @@ while [[ $# -gt 0 ]]; do
     *) usage >&2; exit 2 ;;
   esac
 done
-if [[ ${#destinations[@]} -eq 0 ]]; then destinations+=("$HOME/.agents/skills"); fi
+if [[ ${#destinations[@]} -eq 0 && "$want_mods" == false ]]; then destinations+=("$HOME/.agents/skills"); fi
 if [[ -n "$selected_skill" && ! "$selected_skill" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
   printf 'Invalid skill name: %s\n' "$selected_skill" >&2
   exit 2
+fi
+
+if [[ "$want_mods" == true ]]; then
+  mod_dirs=()
+  for mod_dir in "$repo_dir"/mods/*; do
+    [[ -f "$mod_dir/.claude-plugin/plugin.json" ]] || continue
+    mod_dirs+=("$mod_dir")
+  done
+  [[ ${#mod_dirs[@]} -gt 0 ]] || { printf 'No mods found.\n' >&2; exit 2; }
+  mod_list=$(IFS=:; printf '%s' "${mod_dirs[*]}")
+  printf 'Mods are loaded from disk, not installed. Add this to your shell profile:\n'
+  printf '  export CLAUDE_CODE_PLUGIN_DIRS="%s"\n' "$mod_list"
+  printf 'or to the env block of ~/.claude/settings.json, or pass --plugin-dir per session.\n'
+  [[ ${#destinations[@]} -gt 0 ]] || exit 0
 fi
 
 sources=()

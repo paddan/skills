@@ -1,0 +1,6 @@
+{
+  "name": "usage-hud",
+  "version": "0.1.0",
+  "description": "Band above the prompt showing tokens used, usage limits, cost and active agents",
+  "types": "./types/index.d.ts"
+}

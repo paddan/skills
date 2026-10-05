@@ -23,6 +23,20 @@ Personal agent skills. Each skill lives in its own directory under `skills/`, an
 | `find-skills` | Hittar och installerar skills från agent-skills-ekosystemet. |
 | `jfr-analyzer` | Analyserar Java Flight Recorder-inspelningar för JVM- och applikationsproblem. |
 
+## Mods
+
+Claude Code mods live under `mods/`, apart from the skills; `install.sh` does not
+touch them.
+
+| Mod | Description |
+|-----|-------------|
+| `usage-hud` | Band above the prompt with tokens used, cost, context fill, usage limits (5h/7d) and running agents. `/usage-hud` hides or shows it. |
+
+Load one with `claude --plugin-dir mods/usage-hud`, or run `./install.sh --mods`,
+which installs nothing but prints the `CLAUDE_CODE_PLUGIN_DIRS` value covering
+every mod. `--mods` can be combined with the skill flags. Check it with
+`claude plugin validate mods/usage-hud` and `claude plugin test mods/usage-hud`.
+
 ## Verification
 
 Run `python3 -m unittest discover -s tests -v` for the JFR script regression tests.
